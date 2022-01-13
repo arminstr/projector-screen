@@ -16,6 +16,7 @@ currentPos = 0
 targetPos = 0
 rotationDir = 0
 lastEncoderTicks = encoder.rotation_ticks
+conversionFactor = 4
 
 class Handler(BaseHTTPRequestHandler):
 	"""
@@ -29,12 +30,14 @@ class Handler(BaseHTTPRequestHandler):
 			self.end_headers()
 			stringPos = self.path.split("/")[-1]
 			self.wfile.write(bytes(str(currentPos), "utf-8"))
-			targetPos = int(stringPos)
+			targetPos = int(stringPos)/conversionFactor
 		elif "api/v1/pos" in self.path:
 			self.send_response(200)
 			self.send_header("Content-type", "text/html")
 			self.end_headers()
-			self.wfile.write(bytes(str(currentPos), "utf-8"))
+			self.wfile.write(bytes(str(currentPos*conversionFactor), "utf-8"))
+	def log_message(self, format, *args):
+		return
 
 def positionController():
 	"""
@@ -56,10 +59,9 @@ def positionController():
 		time.sleep(0.1)
 	else:
 		motor.turn(rotationDir)
-	print ("current pos: ", currentPos)
-	print ("target pos: ", targetPos)
-	print (encoder.rotation_ticks)
+
 	lastEncoderTicks = encoder.rotation_ticks
+
 def loop():
 	next_call = time.time()
 	while True:
@@ -69,15 +71,15 @@ def loop():
 
 if __name__ == "__main__":
 	motor.init()
-	print("motor: initialized...")
+	print("motor: initialized ...")
 	encoder.init()
-	print("encoder: initialized...")
+	print("encoder: initialized ...")
 	timerThread = threading.Thread(target=loop)
 	timerThread.daemon = True
 	timerThread.start()
-	print("loop: initialized...")
+	print("loop: initialized ...")
 	webServer = HTTPServer((HOST, PORT), Handler)
-	print("server initialized at port", PORT)
+	print("server: initialized at port", PORT, "...")
 	try:
 		webServer.serve_forever()
 	except KeyboardInterrupt:
@@ -85,15 +87,3 @@ if __name__ == "__main__":
 	webServer.server_close()
 	motor.stop()
 	print("server stopped.")
-"""
-while 1:
-	motor.turn(0)
-	time.sleep(1)
-
-	motor.stop()
-	time.sleep(1)
-	motor.turn(1)
-	time.sleep(1)
-	motor.stop()
-	time.sleep(1)
-"""

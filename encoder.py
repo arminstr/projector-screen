@@ -25,6 +25,6 @@ def init():
 	GPIO.setup(ROTATION_GPIO, GPIO.IN) # rotation
 	GPIO.setup(ENDSWITCH_GPIO, GPIO.IN) # endswitch
 
-	GPIO.add_event_detect(ROTATION_GPIO, GPIO.FALLING, callback=rotation_callback, bouncetime=100)
+	GPIO.add_event_detect(ROTATION_GPIO, GPIO.FALLING, callback=rotation_callback, bouncetime=330)
 	GPIO.add_event_detect(ENDSWITCH_GPIO, GPIO.FALLING, callback=endswitch_callback, bouncetime=10)
 	signal.signal(signal.SIGINT, signal_handler)
