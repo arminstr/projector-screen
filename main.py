@@ -2,6 +2,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import time, datetime
 import threading
 import motor
+import encoder
 
 HOST = ""
 PORT = 80
@@ -13,6 +14,8 @@ MAX_ENCODER_TICKS = 10
 
 currentPos = 0
 targetPos = 0
+rotationDir = 0
+lastEncoderTicks = encoder.rotation_ticks
 
 class Handler(BaseHTTPRequestHandler):
 	"""
@@ -25,13 +28,12 @@ class Handler(BaseHTTPRequestHandler):
 			self.send_header("Content-type", "text/html")
 			self.end_headers()
 			stringPos = self.path.split("/")[-1]
-			self.wfile.write(bytes(stringPos, "utf-8"))
+			self.wfile.write(bytes(str(currentPos), "utf-8"))
 			targetPos = int(stringPos)
 		elif "api/v1/pos" in self.path:
 			self.send_response(200)
 			self.send_header("Content-type", "text/html")
 			self.end_headers()
-			currentPos = targetPos
 			self.wfile.write(bytes(str(currentPos), "utf-8"))
 
 def positionController():
@@ -41,11 +43,23 @@ def positionController():
 	in case the end switch is engaged the motor is not allowed to turn into the upwards direction any further.
 	in addition, current position is set to 0.
 	"""
-	global currentPos, targetPos
+	global currentPos, targetPos, lastEncoderTicks
 
-	# dummy statement
-	print (datetime.datetime.now())
-
+	if currentPos < targetPos:
+		rotationDir = 1
+		currentPos += encoder.rotation_ticks - lastEncoderTicks
+	if currentPos > targetPos:
+		rotationDir = 0
+		currentPos -= encoder.rotation_ticks - lastEncoderTicks
+	if abs(targetPos - currentPos) < 1:
+		motor.stop()
+		time.sleep(0.1)
+	else:
+		motor.turn(rotationDir)
+	print ("current pos: ", currentPos)
+	print ("target pos: ", targetPos)
+	print (encoder.rotation_ticks)
+	lastEncoderTicks = encoder.rotation_ticks
 def loop():
 	next_call = time.time()
 	while True:
@@ -56,6 +70,8 @@ def loop():
 if __name__ == "__main__":
 	motor.init()
 	print("motor: initialized...")
+	encoder.init()
+	print("encoder: initialized...")
 	timerThread = threading.Thread(target=loop)
 	timerThread.daemon = True
 	timerThread.start()
@@ -67,6 +83,7 @@ if __name__ == "__main__":
 	except KeyboardInterrupt:
 		pass
 	webServer.server_close()
+	motor.stop()
 	print("server stopped.")
 """
 while 1:

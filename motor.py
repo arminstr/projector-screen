@@ -19,7 +19,6 @@ def turn(dir):
 	GPIO.output(7, GPIO.LOW)
 	GPIO.output(8, GPIO.LOW)
 	GPIO.output(25, GPIO.LOW)
-	time.sleep(0.1)
 	# turns on the motor in the normal voltage config
 	if dir == 0:
 		GPIO.output(1, GPIO.HIGH)
