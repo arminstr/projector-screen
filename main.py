@@ -2,6 +2,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import time, datetime
 import threading
 import motor
+from motor import Direction
 import encoder
 
 HOST = ""
@@ -16,7 +17,9 @@ currentPos = 0
 targetPos = 0
 rotationDir = 0
 lastEncoderTicks = encoder.rotation_ticks
-conversionFactor = 4
+conversionFactor = 8
+timeoutPeriod = 5 #number of loops until motor turns of in case no ticks occured
+stuckCounter = 0
 
 class Handler(BaseHTTPRequestHandler):
 	"""
@@ -46,22 +49,33 @@ def positionController():
 	in case the end switch is engaged the motor is not allowed to turn into the upwards direction any further.
 	in addition, current position is set to 0.
 	"""
-	global currentPos, targetPos, lastEncoderTicks
+	global currentPos, targetPos, lastEncoderTicks, rotationDir, stuckCounter
 
 	if currentPos < targetPos:
-		rotationDir = 1
+		rotationDir = Direction.UP
 		currentPos += encoder.rotation_ticks - lastEncoderTicks
 	if currentPos > targetPos:
-		rotationDir = 0
+		rotationDir = Direction.DOWN
 		currentPos -= encoder.rotation_ticks - lastEncoderTicks
+
 	if abs(targetPos - currentPos) < 1:
 		motor.stop()
 		time.sleep(0.1)
+		stuckCounter = 0
+	elif stuckCounter > timeoutPeriod and rotationDir == Direction.UP:
+		motor.stop()
+		time.sleep(0.1)
+		currentPos = 0
+		stuckCounter = 0
 	else:
 		motor.turn(rotationDir)
-
+		if abs(encoder.rotation_ticks - lastEncoderTicks) == 0:
+			stuckCounter += 1
+		else:
+			stuckCounter = 0
+	print(rotationDir, targetPos, currentPos, "stuckCounter:", stuckCounter)
 	lastEncoderTicks = encoder.rotation_ticks
-
+	print(encoder.rotation_ticks)
 def loop():
 	next_call = time.time()
 	while True:

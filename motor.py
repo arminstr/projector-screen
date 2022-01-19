@@ -1,5 +1,10 @@
 import RPi.GPIO as GPIO
+from enum import Enum
 import time
+
+class Direction(Enum):
+        UP = 0
+        DOWN = 1
 
 def init():
 	"""
@@ -20,11 +25,11 @@ def turn(dir):
 	GPIO.output(8, GPIO.LOW)
 	GPIO.output(25, GPIO.LOW)
 	# turns on the motor in the normal voltage config
-	if dir == 0:
+	if dir == Direction.UP:
 		GPIO.output(1, GPIO.HIGH)
 		GPIO.output(25, GPIO.HIGH)
 	# turns the motor in reverse
-	if dir == 1:
+	if dir == Direction.DOWN:
 		GPIO.output(7, GPIO.HIGH)
 		GPIO.output(8, GPIO.HIGH)
 
